@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # scylla:
+  #   image: scylladb/scylla
+  #   ports:
+  #     - "9042:9042"
+  #   environment:
+  #     - SCYLLA_CLUSTER_NAME=MyCluster
+  #     - SCYLLA_SEEDS=scylla
+  # stock_tracker:
+  #   build: .
+  #   ports:
+  #     - "3030:3030"
+  #   depends_on:
+  #     - scylla
+  scylla-node1:
+    image: scylladb/scylla
+    container_name: scylla-node1
+    command: --seeds=scylla-node1,scylla-node2 --smp 2 --memory 4G --overprovisioned 1 --api-address 0.0.0.0
+    ports:
+      - "9042:9042" # CQL port for the first node
+      - "9180:9180" # prometheus
+    volumes:
+      - scylla_data1:/var/lib/scylla
+    environment:
+      - SCYLLA_TARGET_ARCH=arm64
+    restart: unless-stopped
+    networks:
+      - scylla-network
+
+  scylla-node2:
+    image: scylladb/scylla
+    container_name: scylla-node2
+    command: --seeds=scylla-node1,scylla-node2 --smp 1 --memory 2G --overprovisioned 1 --api-address 0.0.0.0
+    volumes:
+      - scylla_data2:/var/lib/scylla
+    depends_on:
+      - scylla-node1
+    restart: unless-stopped
+    networks:
+      - scylla-network
+
+  scylla-node3:
+    image: scylladb/scylla
+    container_name: scylla-node3
+    command: --seeds=scylla-node1,scylla-node2 --smp 1 --memory 2G --overprovisioned 1 --api-address 0.0.0.0
+    volumes:
+      - scylla_data3:/var/lib/scylla
+    depends_on:
+      - scylla-node1
+    restart: unless-stopped
+    networks:
+      - scylla-network
+
+networks:
+  scylla-network:
+    driver: bridge
+
+volumes:
+  scylla_data1:
+  scylla_data2:
+  scylla_data3:
